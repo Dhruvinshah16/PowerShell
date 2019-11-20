@@ -1,0 +1,60 @@
+
+
+function Get-BearerToken() {
+    
+    $token = Get-PnPAppAuthAccessToken
+    $headers = @{ Authorization=("Bearer $($token)") }
+}
+
+function Set-SPOFooterText{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $FooterText
+    )
+
+    Begin {
+        Write-Debug "Set-SPOFooterText function called."
+        $site = Get-PnPSite
+        Write-Debug "- Identity: $($site.url)"
+        Write-Debug "- Footer text: $($FooterText)"
+    }
+    Process {
+        # Code to Enable the footer
+        $web = Get-PnPWeb
+        $web.FooterEnabled = $true 
+        $web.Update()
+        Invoke-PnPQuery  
+
+        # Code Set the footer text.
+        
+        $headers = @{accept = "application/json; odata=verbose"}
+        $token = Get-PnPAppAuthAccessToken
+        $headers.Add("Authorization",  "Bearer $($token)");
+
+
+        $body = '{"menuState":{"StartingNodeTitle":"13b7c916-4fea-4bb2-8994-5cf274aeb530","SPSitePrefix":"/","SPWebPrefix":"' + $($web.ServerRelativeUrl) + '","FriendlyUrlPrefix":"","SimpleUrl":"","Nodes":[{"NodeType":0,"Title":"7376cd83-67ac-4753-b156-6a7b3fa0fc1f","Key":"2004","FriendlyUrlSegment":"","Nodes":[{"NodeType":0,"Title":"' + $($footerText) + '","FriendlyUrlSegment":""}]}]}}'
+        $api = "$($site.url)/_api/navigation/SaveMenuState"
+        try{
+            $response = Invoke-WebRequest $api -Method Post -Body $body -Headers $headers -ContentType 'application/json'
+        }catch{
+            Write-Error "- Something went wrong...API call failed. "
+        }
+    }
+    End {
+        if($response.StatusCode -eq 200){
+            Write-Debug "- Footer text has been successfully applied."
+        }else{
+            Write-Debug $response
+        }
+        Write-Debug "Set-SPOFooterText Completed......."
+    }
+}
+
+$DebugPreference = "Continue" #SilentlyContinue; Continue;
+$clientId = "*********************************"
+$secret = "*************************************";
+
+$siteUrl = "**************************************"
+Connect-PnPOnline -url $siteUrl -AppId $clientId -AppSecret $secret
+
+Set-SPOFooterText -FooterText "***Enter Footer Text Here ****"
