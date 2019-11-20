@@ -1,0 +1,50 @@
+function Set-SPOFooterLogo{
+   
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $FooterLogoUrl
+    )
+
+    Begin {
+        Write-Debug "Set-SPOFooterLogo function is called."
+        $site = Get-PnPSite
+        Write-Debug "- Identity: $($site.url)"
+        Write-Debug "- Footer logo url: $($FooterLogoUrl)"
+    }
+    Process {
+        $web = Get-PnPWeb
+        $web.FooterEnabled = $true 
+        $web.Update()
+        Invoke-PnPQuery  
+
+        # Call API to set the footer logo.
+        $headers = @{accept = "application/json; odata=verbose"}
+        $token = Get-PnPAppAuthAccessToken
+        $headers.Add("Authorization",  "Bearer $($token)");
+        $body = '{"menuState":{"StartingNodeTitle":"13b7c916-4fea-4bb2-8994-5cf274aeb530","SPSitePrefix":"/","SPWebPrefix":"' + $($web.ServerRelativeUrl) + '","FriendlyUrlPrefix":"","SimpleUrl":"","Nodes":[{"NodeType":0,"Title":"2e456c2e-3ded-4a6c-a9ea-f7ac4c1b5100","Key":"2006","SimpleUrl":"' + $($FooterLogoUrl) + '","FriendlyUrlSegment":""}]}}'
+        $api = "$($site.Url)/_api/navigation/SaveMenuState"
+    
+        try{
+            $response = Invoke-WebRequest $api -Method Post -Body $body -Headers $headers -ContentType 'application/json'
+        }catch{
+            Write-Debug "- Something went wrong....API call has been failed."
+        }
+    }
+    End {
+        if($response.StatusCode -eq 200){
+            Write-Debug "- Footer Logo has been successfully applied."
+        }else{
+            Write-Debug $response
+        }
+        Write-Debug "Set-SPOFooterLogo finished Operation..please access Communication Site to view the result."
+    }
+}
+
+$DebugPreference = "Continue" #SilentlyContinue; Continue;
+$clientId = "*********************************"
+$secret = "*************************************";
+
+$siteUrl = "**************************************"
+Connect-PnPOnline -url $siteUrl -AppId $clientId -AppSecret $secret
+
+Set-SPOFooterLogo -FooterLogoUrl "***Add your Footer URL******"
