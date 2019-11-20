@@ -1,0 +1,81 @@
+function Set-SPOFooterLinks{
+    param(
+        [string]$identity
+    )
+
+    Write-Debug "Set-SPOFooterCustomerLinks function called."
+    Write-Debug "Identity: $($identity)"
+
+    try{
+        $connection = Connect-PnPOnline -url $identity -AppId $clientId -AppSecret $secret -ReturnConnection
+    }catch{
+        Write-Error "Cannot Connect."
+    }
+
+    try{    
+        $web = Get-PnPWeb -Connection $connection
+        $web.FooterEnabled = $true 
+        $web.Update()
+        Invoke-PnPQuery  
+    }catch{
+        Write-Error "Footer cannot be enabled."
+    }
+
+    $headers = @{accept = "application/json; odata=verbose"}
+    $token = Get-PnPAppAuthAccessToken
+    $headers.Add("Authorization",  "Bearer $($token)");
+
+    $api = "$($identity)/_api/navigation/MenuState?menuNodeKey='13b7c916-4fea-4bb2-8994-5cf274aeb530'"
+    $nav = Invoke-WebRequest $api -Method Get -Headers $headers -ContentType 'application/json'
+    [xml]$xmlNav = $nav
+
+    $node = $xmlNav.MenuState.Nodes.ChildNodes | Where-Object {$_.Title -eq "3a94b35f-030b-468e-80e3-b75ee84ae0ad"}
+    $nav = $node.SimpleUrl
+    if($null -ne $node){
+        $purgeNode = $node.Key
+        $body = '{"menuState":{"StartingNodeTitle":"3a94b35f-030b-468e-80e3-b75ee84ae0ad","SPSitePrefix":"/","SPWebPrefix":"' + $($web.ServerRelativeUrl) + '","FriendlyUrlPrefix":"","SimpleUrl":"","Nodes":[{"NodeType":0,"Key":"' + $purgeNode + '","Title":"","SimpleUrl":"","FriendlyUrlSegment":"","IsDeleted":"true"}]}}'
+        $api = "$($identity)/_api/navigation/SaveMenuState"
+        try{
+            $response = Invoke-WebRequest $api -Method Post -Body $body -Headers $headers -ContentType 'application/json'
+        }catch{
+            Write-Debug "API call failed."
+        }
+    }
+
+    $api = "$($identity)/_api/navigation/SaveMenuState"
+
+    
+    $body = '{"menuState":{"StartingNodeTitle":"3a94b35f-030b-468e-80e3-b75ee84ae0ad","SPSitePrefix":"/","SPWebPrefix":"' + $($web.ServerRelativeUrl) + '","FriendlyUrlPrefix":"","SimpleUrl":"",
+	"Nodes":[{
+   "NodeType":0,
+   "Title":"Google",
+   "SimpleUrl":"https://www.google.com",
+   "FriendlyUrlSegment":"",
+   "IsDeleted":false
+},
+{
+   "NodeType":0,
+   "Title":"Facebook",
+   "SimpleUrl":"https://www.facebook.com/learn2all",
+   "FriendlyUrlSegment":"",
+   "IsDeleted":false
+}
+]
+	}}'
+    try{
+        $response = Invoke-WebRequest $api -Method Post -Body $body -Headers $headers -ContentType 'application/json'
+    }catch{
+        Write-Debug "API call failed."
+    }
+    
+    Disconnect-PnPOnline -Connection $connection
+    return $response.StatusCode
+}
+
+$DebugPreference = "Continue" #SilentlyContinue; Continue;
+$clientId = "**********************"
+$secret = "************************";
+
+$siteUrl = "********************Enter Site URL*********************"
+
+Set-SPOFooterLinks -identity $siteUrl
