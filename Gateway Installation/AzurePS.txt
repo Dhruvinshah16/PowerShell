@@ -1,0 +1,18 @@
+1. Connect-DataGatewayServiceAccount
+
+2. Install-DataGateway -AcceptConditions
+
+3. Add-DataGatewayCluster -Name "DhruvinLearn2AllGT" -OverwriteExistingGateway -RecoveryKey (Read-Host "Enter Recovery Key" -AsSecureString)
+
+ 
+
+4. 4ba735f3-f97e-47d5-9b8c-b39a58959618
+
+5 .GatewaycluserID
+fdda1949-8011-407e-bf98-aa9855e8328e
+
+$userToAdd = "6d5ac9b4-f4bd-48a2-8988-fe64e7bb7cc6"
+
+Add-DataGatewayClusterUser -GatewayClusterId fdda1949-8011-407e-bf98-aa9855e8328e -PrincipalObjectId $userToAdd -AllowedDataSourceTypes $null -Role Admin 
+
+
